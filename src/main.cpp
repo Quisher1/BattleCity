@@ -1,12 +1,18 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <glm/vec2.hpp>
+
 #include <iostream>
+
 #include "Resources/ResourceManager.h"
-
 #include "Renderer/ShaderProgram.h"
+#include "Renderer/Texture2D.h"
 
-int g_windowSizeX = 640;
-int g_windowSizeY = 480;
+
+glm::ivec2 m_WindowSize(640, 480*2);
+
+//int g_windowSizeX = 640;
+//int g_windowSizeY = 480;
 
 
 GLfloat point[] = {
@@ -19,12 +25,17 @@ GLfloat colors[] = {
 	0.0f, 1.0f, 0.0f,
 	0.0f, 0.0f, 1.0f
 };
+GLfloat texCoord[] = {
+	0.5f, 1.0f,
+	1.0f, 0.0f,
+	0.0f, 0.0f
+};
 
 
 void glfwWindowSizeCallback(GLFWwindow* window, int width, int height) {
-	g_windowSizeX = width;
-	g_windowSizeY = height;
-	glViewport(0, 0, g_windowSizeX, g_windowSizeY);
+	m_WindowSize.x = width;
+	m_WindowSize.y = height;
+	glViewport(0, 0, m_WindowSize.x, m_WindowSize.y);
 }
 
 void glfwKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mode) {
@@ -47,7 +58,7 @@ int main(int argc, char** argv){
 
 
 	/* Create a windowed mode window and its OpenGL context */
-	GLFWwindow* window = glfwCreateWindow(g_windowSizeX, g_windowSizeY, "BattleCity", nullptr, nullptr);
+	GLFWwindow* window = glfwCreateWindow(m_WindowSize.x, m_WindowSize.y, "BattleCity", nullptr, nullptr);
 	if (!window){
 		std::cout << "glfwCreateWindow failed" << std::endl;
 		glfwTerminate();
@@ -77,8 +88,9 @@ int main(int argc, char** argv){
 		if (!DefaulShaderProgram) {
 			std::cerr << "Can't create shader program: " << "DefaultShader" << std::endl;
 		}
-	
-
+		
+		auto tex = resourceManager.loatTexture("DefaultTexture", "res/Textures/atlas256x256.png");
+		
 		GLuint points_vbo = 0;
 		glGenBuffers(1, &points_vbo);
 		glBindBuffer(GL_ARRAY_BUFFER, points_vbo);
@@ -89,6 +101,11 @@ int main(int argc, char** argv){
 		glGenBuffers(1, &colors_vbo);
 		glBindBuffer(GL_ARRAY_BUFFER, colors_vbo);
 		glBufferData(GL_ARRAY_BUFFER, sizeof(colors), colors, GL_STATIC_DRAW);
+
+		GLuint texCoord_vbo = 0;
+		glGenBuffers(1, &texCoord_vbo);
+		glBindBuffer(GL_ARRAY_BUFFER, texCoord_vbo);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(texCoord), texCoord, GL_STATIC_DRAW);
 
 
 		GLuint vao = 0;
@@ -103,6 +120,15 @@ int main(int argc, char** argv){
 		glBindBuffer(GL_ARRAY_BUFFER, colors_vbo);
 		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
 
+		glEnableVertexAttribArray(2);
+		glBindBuffer(GL_ARRAY_BUFFER, texCoord_vbo);
+		glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+
+
+		DefaulShaderProgram->use();
+		DefaulShaderProgram->setInt("tex", 0);
+
 		/* Loop until the user closes the window */
 		while (!glfwWindowShouldClose(window)) {
 			/* Render here */
@@ -111,6 +137,7 @@ int main(int argc, char** argv){
 
 			DefaulShaderProgram->use();
 			glBindVertexArray(vao);
+			tex->bind();
 			glDrawArrays(GL_TRIANGLES, 0, 3);
 
 			/* Swap front and back buffers */
